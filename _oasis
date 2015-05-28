@@ -1,0 +1,42 @@
+OASISFormat:      0.3
+OCamlVersion:     >= 4.02.1
+FindlibVersion:   >= 1.3.2
+Name:             pa_structural_sexp
+Version:          112.35.00
+Synopsis:         Quotation expanders to simplify building s-expressions from ocaml values
+Authors:          Jane Street Group, LLC <opensource@janestreet.com>
+Copyrights:       (C) 2015 Jane Street Group LLC <opensource@janestreet.com>
+Maintainers:      Jane Street Group, LLC <opensource@janestreet.com>
+License:          Apache-2.0
+LicenseFile:      LICENSE.txt
+Homepage:         https://github.com/janestreet/pa_structural_sexp
+Plugins:          StdFiles (0.3), DevFiles (0.3), META (0.3)
+XStdFilesAUTHORS: false
+XStdFilesREADME:  false
+BuildTools:       ocamlbuild, camlp4o
+Description:
+  Part of Jane Street’s Core library.
+  .
+  The Core suite of libraries is an industrial strength alternative to
+  OCaml's standard library that was developed by Jane Street, the
+  largest industrial user of OCaml.
+
+Library pa_structural_sexp_lib
+  Path:           lib
+  FindlibName:    pa_structural_sexp
+  Pack:           true
+  Modules:        Pa_structural_sexp_dummy
+  XMETAType:      library
+
+Library pa_structural_sexp
+  Path:               src
+  Modules:            Pa_structural_sexp
+  FindlibParent:      pa_structural_sexp_lib
+  FindlibName:        syntax
+  BuildDepends:       camlp4.lib,
+                      camlp4.quotations,
+                      sexplib,
+                      type_conv (>= 3.0.5)
+  XMETAType:          syntax
+  XMETARequires:      camlp4, type_conv, sexplib.syntax
+  XMETADescription:   Quotation expanders for building sexps from ocaml values
