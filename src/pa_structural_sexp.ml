@@ -2,21 +2,12 @@ open StdLabels
 open Camlp4
 open PreCast
 
+module Gen = Pa_type_conv.Gen
+
 let sexp_of_quote =
   try Syntax.Quotation.find "sexp_of" Syntax.Quotation.DynAst.expr_tag
   with Not_found ->
     failwith "pa_structural_sexp requires but cannot find the quotation expander sexp_of"
-;;
-
-let string_of_typ =
-  let syntax_printer =
-    let module PP = Camlp4.Printers.OCaml.Make (Syntax) in
-    new PP.printer ~comments:false ()
-  in
-  fun typ ->
-    let buffer = Buffer.create 16 in
-    Format.bprintf buffer "%a%!" syntax_printer#ctyp typ;
-    Buffer.contents buffer
 ;;
 
 let rec list_and_tail_of_ast_list rev_el = function
@@ -30,7 +21,7 @@ let rec sexp_of_expr expr =
   | <:expr@loc< if $e1$ then $e2$ else $e3$ >> ->
     <:expr@loc< if $e1$ then $sexp_of_expr e2$ else $sexp_of_expr e3$ >>
   | <:expr@loc< ( $e2$ : $ctyp$ ) >> ->
-    let e1 = sexp_of_quote loc None (string_of_typ ctyp) in
+    let e1 = sexp_of_quote loc None (Gen.string_of_ctyp ctyp) in
     <:expr@loc< $e1$ $e2$ >>
   | <:expr@loc< [] >> | <:expr@loc< [ $_$ :: $_$ ] >> as e ->
     let el, tl = list_and_tail_of_ast_list [] e in
@@ -61,12 +52,7 @@ let rec sexp_of_expr expr =
     let el = List.map (Ast.list_of_expr e []) ~f:sexp_of_expr in
     sexp_of_sexp_list loc el ~tl:<:expr@loc< [] >>
   | <:expr@loc< { $fields$ } >> ->
-    let record = List.rev (convert_bindings [] fields) in
-    let l =
-      List.map record ~f:(fun (loc, s, sexp) ->
-        <:expr@loc< Sexplib.Sexp.List [ Sexplib.Sexp.Atom $str:s$; $sexp$ ] >>)
-    in
-    sexp_of_sexp_list loc l ~tl:<:expr@loc< [] >>
+    <:expr@loc< Sexplib.Sexp.List $convert_record <:expr@loc< [] >> fields$ >>
   | e -> Loc.raise (Ast.loc_of_expr e) (Failure "Don't know how to handle this construct")
 
 and sexp_of_sexp_list loc el ~tl =
@@ -76,14 +62,27 @@ and sexp_of_sexp_list loc el ~tl =
   in
   <:expr@loc< Sexplib.Sexp.List $l$ >>
 
-and convert_bindings acc bindings =
+and convert_record_field loc i expr =
+  <:expr@loc< Sexplib.Sexp.List [ Sexplib.Sexp.Atom $str:convert_id i$
+                                ; $sexp_of_expr expr$ ] >>
+
+and convert_record tail bindings =
   match bindings with
   | <:rec_binding< $bindings1$; $bindings2$ >> ->
-    convert_bindings (convert_bindings acc bindings1) bindings2
+    convert_record (convert_record tail bindings2) bindings1
+  | <:rec_binding@loc< $i$ = ($e$ : sexp_option $ty$) >> ->
+    <:expr@loc<
+      let tail = $tail$
+      and hd_opt = $e$
+      in
+      match hd_opt with
+      [ None -> tail
+      | Some hd -> [ $convert_record_field loc i <:expr@loc< (hd : $ty$) >> $ :: tail ]
+      ]
+    >>
   | <:rec_binding@loc< $i$ = $e$ >> ->
-    (loc, convert_id i, sexp_of_expr e) :: acc
-  | <:rec_binding< >> ->
-    acc
+    <:expr@loc< [ $convert_record_field loc i e$ :: $tail$ ] >>
+  | <:rec_binding< >> -> tail
   | Ast.RbAnt _ -> assert false
 
 and convert_id = function

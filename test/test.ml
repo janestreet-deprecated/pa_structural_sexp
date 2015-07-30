@@ -46,6 +46,23 @@ TEST_UNIT "strange case doesn't raise an exception" =
     ~expect:(List [Atom "A"; Atom "B"])
     <:structural_sexp< `A :: `B >>
 
+TEST_MODULE "optional record field" = struct
+  TEST_UNIT "absent" =
+    <:test_result< Sexp.t >>
+      ~expect:(List [ List [ Atom "a"; Atom "1" ]
+                    ; List [ Atom "c"; Atom "3" ]])
+      <:structural_sexp< { a = 1; b = (None : int sexp_option); c = 3; } >>
+  ;;
+
+  TEST_UNIT "present" =
+    <:test_result< Sexp.t >>
+      ~expect:(List [ List [ Atom "a"; Atom "1" ]
+                    ; List [ Atom "b"; Atom "2" ]
+                    ; List [ Atom "c"; Atom "3" ]])
+      <:structural_sexp< { a = 1; b = (Some 2 : int sexp_option); c = 3; } >>
+  ;;
+end
+
 module Other_quotation_expanders = struct
 
   let test_exn here f =
