@@ -1,0 +1,22 @@
+# OASIS_START
+# DO NOT EDIT (digest: 33f0eaf6567972159a54ca0d9da97fae)
+version = "113.00.00"
+description =
+"Quotation expanders to simplify building s-expressions from ocaml values"
+archive(byte) = "pa_structural_sexp_lib.cma"
+archive(byte, plugin) = "pa_structural_sexp_lib.cma"
+archive(native) = "pa_structural_sexp_lib.cmxa"
+archive(native, plugin) = "pa_structural_sexp_lib.cmxs"
+exists_if = "pa_structural_sexp_lib.cma"
+package "syntax" (
+ version = "113.00.00"
+ description = "Quotation expanders for building sexps from ocaml values"
+ requires = "camlp4 type_conv sexplib.syntax"
+ archive(syntax, preprocessor) = "pa_structural_sexp.cma"
+ archive(syntax, toploop) = "pa_structural_sexp.cma"
+ archive(syntax, preprocessor, native) = "pa_structural_sexp.cmxa"
+ archive(syntax, preprocessor, native, plugin) = "pa_structural_sexp.cmxs"
+ exists_if = "pa_structural_sexp.cma"
+)
+# OASIS_STOP
+
